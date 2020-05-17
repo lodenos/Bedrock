@@ -1,0 +1,9 @@
+name: bedrock
+version: 0.1.0
+
+authors:
+  - lodenos <nikolaiilodenos@gmail.com>
+
+crystal: 0.34.0
+
+license: MIT
