@@ -2,7 +2,7 @@ require "http/server"
 
 module Bedrock
   abstract class Routing
-    @request : HTTP::Request
+    @request : HTTP::Request?
 
     def initialize
       @pathFinded = false
@@ -14,27 +14,27 @@ module Bedrock
 
     private def match_route(path : String)
       parameter = {} of String => String
-      return yield parameter if pathReference == "*"
-      reference = path.split('/')
-      path = @request.path.split('/')
-      return if path.size > reference.size
+      return yield parameter if path == "*"
+      pathRef = path.split('/')
+      path = @request.not_nil!.path.split('/')
+      return if path.size > pathRef.size
       index = 0
       loop do
-        return if index >= reference.size
-        if reference[index].size == 0
+        return if index >= pathRef.size
+        if pathRef[index].size == 0
           index = index + 1
           next
         end
-        if reference[index][0] == ':'
+        if pathRef[index][0] == ':'
           if index >= path.size
-            parameter[reference[index][1...]] = ""
+            parameter[pathRef[index][1...]] = ""
             break
           end
-          parameter[reference[index][1...]] = path[index]
-        elsif reference[index] != path[index]
+          parameter[pathRef[index][1...]] = path[index]
+        elsif pathRef[index] != path[index]
           return
         end
-        break if index >= reference.size - 1
+        break if index >= pathRef.size - 1
         index = index + 1
       end
       yield parameter
@@ -42,7 +42,7 @@ module Bedrock
     end
 
     def get(path : String, &block)
-      return unless @request.method == "GET"
+      return unless @request.not_nil!.method == "GET"
       return if self.path_finded?
       self.match_route path do |params|
         yield params
