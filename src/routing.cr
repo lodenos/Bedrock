@@ -38,6 +38,16 @@ module Bedrock
       @pathFinded = true
     end
 
+    def dead_links(&block)
+      return if self.path_finded?
+      yield
+    end
+
+    def broken_links(&block)
+      return if self.path_finded?
+      yield
+    end
+
     def connect(path : String, &block)
       return unless @request.not_nil!.method == "CONNECT"
       return if self.path_finded?
