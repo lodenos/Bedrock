@@ -38,6 +38,22 @@ module Bedrock
       @pathFinded = true
     end
 
+    def connect(path : String, &block)
+      return unless @request.not_nil!.method == "CONNECT"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def delete(path : String, &block)
+      return unless @request.not_nil!.method == "DELETE"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
     def get(path : String, &block)
       return unless @request.not_nil!.method == "GET"
       return if self.path_finded?
@@ -45,18 +61,53 @@ module Bedrock
         yield params
       end
     end
+
+    def head(path : String, &block)
+      return unless @request.not_nil!.method == "HEAD"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def options(path : String, &block)
+      return unless @request.not_nil!.method == "OPTIONS"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def path(path : String, &block)
+      return unless @request.not_nil!.method == "PATH"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def post(path : String, &block)
+      return unless @request.not_nil!.method == "POST"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def put(path : String, &block)
+      return unless @request.not_nil!.method == "PUT"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
+
+    def trace(path : String, &block)
+      return unless @request.not_nil!.method == "TRACE"
+      return if self.path_finded?
+      self.match_route path do |params|
+        yield params
+      end
+    end
   end
 end
-
-
-
-# "connect", "delete", "get", "head", "options", "path", "post", "put", "trace"
-#
-# get('/users/:userId/books/:bookId', function (req, res) {
-#   res.send(req.params)
-# })
-#
-# app.METHOD(PATH, HANDLER)
-#
-# case
-# when "DELETE" t
