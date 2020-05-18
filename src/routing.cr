@@ -119,13 +119,5 @@ module Bedrock
         yield params
       end
     end
-
-    def update(path : String, &block)
-      return unless @request.not_nil!.method == "UPDATE"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
   end
 end
