@@ -3,10 +3,7 @@ require "http/server"
 module Bedrock
   abstract class Routing
     @request : HTTP::Request?
-
-    def initialize
-      @pathFinded = false
-    end
+    @pathFinded = false
 
     def path_finded?
       @pathFinded
