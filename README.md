@@ -9,7 +9,7 @@ TODO: Write a description here
    ```yaml
    dependencies:
      bedrock:
-       github: your-github-user/Bedrock
+       github: lodenos/Bedrock
    ```
 
 2. Run `shards install`
