@@ -89,7 +89,7 @@ module Bedrock
     end
 
     def patch(path : String, &block)
-      return unless @request.not_nil!.method == "PATH"
+      return unless @request.not_nil!.method == "PATCH"
       return if self.path_finded?
       self.match_route path do |params|
         yield params
