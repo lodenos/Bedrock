@@ -14,7 +14,7 @@ module Bedrock
       return yield parameter if path == "*"
       pathRef = path.split('/')
       path = @request.not_nil!.path.split('/')
-      return if path.size > pathRef.size
+      return if path.size != pathRef.size
       index = 0
       loop do
         return if index >= pathRef.size
@@ -23,11 +23,10 @@ module Bedrock
           next
         end
         if pathRef[index][0] == ':'
-          if index >= path.size
-            parameter[pathRef[index][1...]] = ""
+          parameter[pathRef[index][1...]] = path[index]
+          if index >= path.size - 1
             break
           end
-          parameter[pathRef[index][1...]] = path[index]
         elsif pathRef[index] != path[index]
           return
         end
