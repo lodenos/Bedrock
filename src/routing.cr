@@ -47,76 +47,17 @@ module Bedrock
       yield
     end
 
-    def connect(path : String, &block)
-      return unless @request.not_nil!.method == "CONNECT"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def delete(path : String, &block)
-      return unless @request.not_nil!.method == "DELETE"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def get(path : String, &block)
-      return unless @request.not_nil!.method == "GET"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def head(path : String, &block)
-      return unless @request.not_nil!.method == "HEAD"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def options(path : String, &block)
-      return unless @request.not_nil!.method == "OPTIONS"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def patch(path : String, &block)
-      return unless @request.not_nil!.method == "PATCH"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def post(path : String, &block)
-      return unless @request.not_nil!.method == "POST"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def put(path : String, &block)
-      return unless @request.not_nil!.method == "PUT"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
-
-    def trace(path : String, &block)
-      return unless @request.not_nil!.method == "TRACE"
-      return if self.path_finded?
-      self.match_route path do |params|
-        yield params
-      end
-    end
+    {% begin %}
+      {% methods = %w(CONNECT DELETE GET HEAD OPTIONS PATCH POST PUT TRACE) %}
+      {% for method in methods %}
+        def {{method.downcase.id}}(path : String, &block)
+          return unless @request.not_nil!.method == {{method}}
+          return if self.path_finded?
+          self.match_route path do |params|
+            yield params
+          end
+        end
+      {% end %}
+    {% end %}
   end
 end
