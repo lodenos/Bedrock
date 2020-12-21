@@ -54,7 +54,7 @@ module Bedrock
           return if self.path_finded?
           self.match_route path do |params|
             URI.parse(path).query_params.each do |key, value|
-              params["query"] = { key, value }
+              params["query"][key] = value
             end
             yield params
           end
