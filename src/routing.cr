@@ -11,7 +11,7 @@ module Bedrock
     end
 
     private def match_route(path : String)
-      parameter = {} of String => String
+      parameter = {} of String => String | Hash(String, String)
       return yield parameter if path == "*"
       pathRef = path.split '/'
       path = @request.not_nil!.path.split '/'
@@ -53,7 +53,9 @@ module Bedrock
           return unless @request.not_nil!.method == {{ method }}
           return if self.path_finded?
           self.match_route path do |params|
-            params["query"] = URI.parse(path).query_params
+            URI.parse(path).query_params.each do |object|
+              params["query"] = object
+            end
             yield params
           end
         end
