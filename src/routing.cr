@@ -53,10 +53,11 @@ module Bedrock
           return unless @request.not_nil!.method == {{ method }}
           return if self.path_finded?
           self.match_route path do |params|
-            params["query"] = {} of String => String
+            hash = {} of String => String
             URI.parse(path).query_params.each do |key, value|
-              params["query"]["a"] = value
+              hash[key] = value
             end
+            params["query"] = hash
             yield params
           end
         end
