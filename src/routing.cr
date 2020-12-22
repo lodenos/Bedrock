@@ -55,7 +55,7 @@ module Bedrock
           self.match_route path do |params|
             params["query"] = {} of String => String
             URI.parse(path).query_params.each do |key, value|
-              params["query"][key.as String] = value
+              params["query"]["a"] = value
             end
             yield params
           end
