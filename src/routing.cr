@@ -54,9 +54,11 @@ module Bedrock
           return if self.path_finded?
           self.match_route path do |params|
             hash = {} of String => String
-            query = @request.not_nil!.query.not_nil!
-            HTTP::Params.parse(query).each do |key, value|
-              hash[key] = value
+            unless @request.not_nil!.query == nil
+              query = @request.not_nil!.query.not_nil!
+              HTTP::Params.parse(query).each do |key, value|
+                hash[key] = value
+              end
             end
             params["query"] = hash
             yield params
