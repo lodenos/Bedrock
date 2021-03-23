@@ -23,7 +23,7 @@ There is still work to be done to provide a great APX experience, if you have th
 ## Usage
 
 ```crystal
-require "Cocaine"
+require "cocaine"
 ```
 
 TODO: Write usage instructions here
