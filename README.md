@@ -24,9 +24,23 @@ There is still work to be done to provide a great APX experience, if you have th
 
 ```crystal
 require "cocaine"
-```
 
-TODO: Write usage instructions here
+cocaine_generate_endpoint [
+  {
+    "path" => "/user/:id",
+    "verb" => "GET",
+    "callback" => callback
+  }
+]
+
+def callback(context : HTTP::Server::Context, params : Cocaine::Param)
+  context.response.content_type = "text/plain"
+  context.response.print "Hello world, got #{ context.request.path } !\n"
+end
+
+server = HTTP::Server.new { |context| Cocaine.match_endpoint context }
+server.listen "0.0.0.0", 5000
+```
 
 ## Development
 
