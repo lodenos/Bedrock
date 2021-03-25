@@ -25,18 +25,37 @@ macro cocaine_generate_endpoint(descriptions)
           {% firstCall = true %}
           {% condition = "" %}
           {% for index in 0...split.size %}
-            {% next if split[index][0...1] == ':' %}
-            {% if firstCall %}
-              {% condition += "if split[#{ index.id }] == #{ split[index] }" %}
-              {% firstCall = false %}
-            {% else %}
-              {% condition += " && split[#{ index.id }] == #{ split[index] }" %}
+            {% unless split[index][0...1] == ":" %}
+              {% if firstCall %}
+                {% condition += "if split[#{ index.id }] == #{ split[index] }" %}
+                {% firstCall = false %}
+              {% else %}
+                {% condition += " && split[#{ index.id }] == #{ split[index] }" %}
+              {% end %}
             {% end %}
           {% end %}
           # Blit the complex condition form some few previous lines
           {{ condition.id }}
             # TODO: Add or not context
-            {{ route["callback"].id }} context, Param.new
+            # Build Param
+            {% firstCall = true %}
+            {% params = "{" %}
+            {% for index in 0...split.size %}
+              {% if split[index][0...1] == ":" %}
+                {% if firstCall %}
+                  {% params += " #{ split[index] } => split[#{ index.id }] " %}
+                  {% firstCall = false %}
+                {% else %}
+                  {% params += ", #{ split[index] } => split[#{ index.id }]" %}
+                {% end %}
+              {% end %}
+            {% end %}
+            {% params += "}" %}
+            {% if params == "{}"%}
+              {{ route["callback"].id }} context, Param.new
+            {% else %}
+              {{ route["callback"].id }} context, {{ params.id }}
+            {% end %}
             return true
           end
         end
@@ -85,44 +104,45 @@ end
 # Define your Controllers
 ################################################################################
 
-# def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
-#   # context.response.content_type = "text/plain"
-#   # context.response.write Pointer.new "> user", 6, true
-# end
+def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
+  # context.response.content_type = "text/plain"
+  # context.response.write Pointer.new "> user", 6, true
+end
 
-# def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
-#   # context.response.content_type = "text/plain"
-#   # context.response.write Pointer.new "> user", 6, true
-# end
+def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
+  # puts params
+  # context.response.content_type = "text/plain"
+  # context.response.write Pointer.new "> user", 6, true
+end
 
 ################################################################################
 # Endpoint Generation
 ################################################################################
 
-# cocaine_generate_endpoint [
-#   {
-#     "name" => "index",
-#     "path" => "/",
-#     "verb" => "GET",
-#     "callback" => controller_index
-#   },
-#   {
-#     "name" => "user",
-#     "path" => "/user/:id",
-#     "verb" => "GET",
-#     "callback" => controller_user
-#   }
-# ]
+cocaine_generate_endpoint [
+  {
+    "name" => "index",
+    "path" => "/",
+    "verb" => "GET",
+    "callback" => controller_index
+  },
+  {
+    "name" => "user",
+    "path" => "/user/:id",
+    "verb" => "GET",
+    "callback" => controller_user
+  }
+]
 
 ################################################################################
 # Server
 ################################################################################
 
-# server = HTTP::Server.new do |context|
-#   elapsed_time = Time.measure do
-#     Cocaine.match_endpoint context
-#   end
-#   puts elapsed_time.nanoseconds
-# end
-# puts "run"
-# server.listen "0.0.0.0", 5000
+server = HTTP::Server.new do |context|
+  elapsed_time = Time.measure do
+    Cocaine.match_endpoint context
+  end
+  puts elapsed_time.nanoseconds
+end
+puts "run"
+server.listen "0.0.0.0", 5000
