@@ -104,45 +104,45 @@ end
 # Define your Controllers
 ################################################################################
 
-def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
-  # context.response.content_type = "text/plain"
-  # context.response.write Pointer.new "> user", 6, true
-end
+# def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
+#   # context.response.content_type = "text/plain"
+#   # context.response.write Pointer.new "> user", 6, true
+# end
 
-def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
-  # puts params
-  # context.response.content_type = "text/plain"
-  # context.response.write Pointer.new "> user", 6, true
-end
+# def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
+#   # puts params
+#   # context.response.content_type = "text/plain"
+#   # context.response.write Pointer.new "> user", 6, true
+# end
 
 ################################################################################
 # Endpoint Generation
 ################################################################################
 
-cocaine_generate_endpoint [
-  {
-    "name" => "index",
-    "path" => "/",
-    "verb" => "GET",
-    "callback" => controller_index
-  },
-  {
-    "name" => "user",
-    "path" => "/user/:id",
-    "verb" => "GET",
-    "callback" => controller_user
-  }
-]
+# cocaine_generate_endpoint [
+#   {
+#     "name" => "index",
+#     "path" => "/",
+#     "verb" => "GET",
+#     "callback" => controller_index
+#   },
+#   {
+#     "name" => "user",
+#     "path" => "/user/:id",
+#     "verb" => "GET",
+#     "callback" => controller_user
+#   }
+# ]
 
 ################################################################################
 # Server
 ################################################################################
 
-server = HTTP::Server.new do |context|
-  elapsed_time = Time.measure do
-    Cocaine.match_endpoint context
-  end
-  puts elapsed_time.nanoseconds
-end
-puts "run"
-server.listen "0.0.0.0", 5000
+# server = HTTP::Server.new do |context|
+#   elapsed_time = Time.measure do
+#     Cocaine.match_endpoint context
+#   end
+#   puts elapsed_time.nanoseconds
+# end
+# puts "run"
+# server.listen "0.0.0.0", 5000
