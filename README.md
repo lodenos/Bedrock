@@ -7,6 +7,7 @@ You just have to describe how your API REST works with an array of Hashliteral a
 You will only have to deal with the final behavior during a match.
 Currently this is a Beta version, however the first speed tests are pretty good, the framework is able to respond to around 200000 req/sec on Intel i7-7820HQ (8) @ 2.90GHz.
 There is still work to be done to provide a great APX experience, if you have the idea for improvement do not hesitate to do a pullrequest.
+https://youtu.be/q1HW6DdBCKw
 
 ## Installation
 
@@ -25,18 +26,40 @@ There is still work to be done to provide a great APX experience, if you have th
 ```crystal
 require "cocaine"
 
+################################################################################
+# Define your Controllers
+################################################################################
+
+def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
+  context.response.content_type = "text/plain"
+  context.response.print "Hello world, got #{ context.request.path } !"
+end
+
+def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
+  context.response.content_type = "text/plain"
+  context.response.print "Hello world, got #{ context.request.path } !"
+end
+
+################################################################################
+# Endpoint Generation
+################################################################################
+
 cocaine_generate_endpoint [
+  {
+    "path" => "/",
+    "verb" => "GET",
+    "callback" => controller_index
+  },
   {
     "path" => "/user/:id",
     "verb" => "GET",
-    "callback" => callback
+    "callback" => controller_user
   }
 ]
 
-def callback(context : HTTP::Server::Context, params : Cocaine::Param)
-  context.response.content_type = "text/plain"
-  context.response.print "Hello world, got #{ context.request.path } !\n"
-end
+################################################################################
+# Server
+################################################################################
 
 server = HTTP::Server.new { |context| Cocaine.match_endpoint context }
 server.listen "0.0.0.0", 5000

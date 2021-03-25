@@ -4,6 +4,10 @@ macro cocaine_generate_endpoint(descriptions)
   module Cocaine
     VERSION = "0.1.0"
 
+    alias Param = Hash(String, String)
+
+    # TODO: Add a check on compile time for descriptions to be sure is valid
+
     ############################################################################
     # Generate the Matching Function for each path
     ############################################################################
@@ -11,7 +15,7 @@ macro cocaine_generate_endpoint(descriptions)
     {% for route in descriptions %}
       {% name = "#{ route["verb"].downcase.id }_#{ route["name"].downcase.id }?" %}
       private def self.{{ name.id }}(context : HTTP::Server::Context, reference, path) : Bool
-        {% split = route["path"][0].split '/' %}
+        {% split = route["path"].split '/' %}
         split = path.split '/'
         # Check if have the same quantity of '/'
         if split.size == {{ split.size }}
@@ -31,7 +35,8 @@ macro cocaine_generate_endpoint(descriptions)
           {% end %}
           # Blit the complex condition form some few previous lines
           {{ condition.id }}
-            {{ route["function"] }} context
+            # TODO: Add or not context
+            {{ route["callback"].id }} context, Param.new
             return true
           end
         end
@@ -42,6 +47,13 @@ macro cocaine_generate_endpoint(descriptions)
     ############################################################################
     # Main Function
     ############################################################################
+
+    # TODO: Be First on this Benchmark Here -> https://github.com/the-benchmarker/web-frameworks
+    # 7 Bytes -> CONNECT, OPTIONS
+    # 6 Bytes -> DELETE
+    # 5 Bytes -> PATCH, TRACE
+    # 4 Bytes -> HEAD, POST
+    # 3 Bytes -> GET, PUT
 
     def self.match_endpoint(context : HTTP::Server::Context)
       request = context.request
@@ -69,28 +81,48 @@ end
 # Basic Test
 ################################################################################
 
-cocaine_generate_endpoint [
-  {
-    "name" => "service",
-    "path" => [
-      "/image",
-      "/img"
-    ],
-    "verb" => "GET",
-    "function" => function
-  }
-]
+################################################################################
+# Define your Controllers
+################################################################################
 
-def function(context : HTTP::Server::Context)
-  context.response.content_type = "text/plain"
-  context.response.print "Hello world, got #{ context.request.path } !\n"
-end
+# def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
+#   # context.response.content_type = "text/plain"
+#   # context.response.write Pointer.new "> user", 6, true
+# end
 
-server = HTTP::Server.new do |context| 
-  Cocaine.match_endpoint context
-end
+# def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
+#   # context.response.content_type = "text/plain"
+#   # context.response.write Pointer.new "> user", 6, true
+# end
 
-server.bind_tcp "0.0.0.0", 5000
-puts "run"
-server.listen
+################################################################################
+# Endpoint Generation
+################################################################################
 
+# cocaine_generate_endpoint [
+#   {
+#     "name" => "index",
+#     "path" => "/",
+#     "verb" => "GET",
+#     "callback" => controller_index
+#   },
+#   {
+#     "name" => "user",
+#     "path" => "/user/:id",
+#     "verb" => "GET",
+#     "callback" => controller_user
+#   }
+# ]
+
+################################################################################
+# Server
+################################################################################
+
+# server = HTTP::Server.new do |context|
+#   elapsed_time = Time.measure do
+#     Cocaine.match_endpoint context
+#   end
+#   puts elapsed_time.nanoseconds
+# end
+# puts "run"
+# server.listen "0.0.0.0", 5000
