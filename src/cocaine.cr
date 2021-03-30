@@ -1,13 +1,14 @@
 require "http/server"
 
+module Cocaine
+  VERSION = "0.1.0"
+
+  alias RouteParams = Hash(String, String)
+end
+
 macro cocaine_generate_endpoint(descriptions)
   module Cocaine
-    VERSION = "0.1.0"
-
-    alias Param = Hash(String, String)
-
     # TODO: Add a check on compile time for descriptions to be sure is valid
-
     ############################################################################
     # Generate the Matching Function for each path
     ############################################################################
@@ -52,7 +53,7 @@ macro cocaine_generate_endpoint(descriptions)
             {% end %}
             {% params += "}" %}
             {% if params == "{}"%}
-              {{ route["callback"].id }} context, Param.new
+              {{ route["callback"].id }} context, RouteParams.new
             {% else %}
               {{ route["callback"].id }} context, {{ params.id }}
             {% end %}
