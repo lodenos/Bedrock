@@ -8,6 +8,8 @@ end
 
 macro cocaine_generate_endpoint(descriptions)
   module Cocaine
+    alias RouteParams = Hash(String, String) # I don't why I do to declare that twice ???
+
     # TODO: Add a check on compile time for descriptions to be sure is valid
     ############################################################################
     # Generate the Matching Function for each path
