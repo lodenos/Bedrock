@@ -2,15 +2,57 @@ require "http/server"
 
 module Cocaine
   VERSION = "0.1.0"
-
-  alias RouteParams = Hash(String, String)
 end
 
 macro cocaine_generate_endpoint(descriptions)
   module Cocaine
-    alias RouteParams = Hash(String, String) # I don't why I do to declare that twice ???
-
     # TODO: Add a check on compile time for descriptions to be sure is valid
+
+    ############################################################################
+    # Collect all verbs
+    ############################################################################
+
+    {% verbs = [] of String %}
+    {% for route in descriptions %}
+      {% verbs << route["verb"] %}
+    {% end %}
+    {% verbs = verbs.uniq %}
+
+    ############################################################################
+    # Generate a variable routeParam
+    ############################################################################
+
+    {% routeParam = {} of String => Array(String) %}
+    {% for route in descriptions %}
+      {% array = [] of String %}
+      {% split = route["path"].split "/" %}
+      {% for item, index in split %}
+        {% if item[0...1] == ":" %}
+          {% array << item[1...item.size] %}
+        {% end %}
+      {% end %}
+      {% routeParam[route["path"]] = array %}
+    {% end %}
+
+    ############################################################################
+    # Generate Custum Struct for Route Parameter
+    ############################################################################
+
+    # INFO: if no param no build the struct
+
+    {% for route in descriptions %}
+      {% if routeParam[route["path"]].size > 0 %}
+        # This is {{ route["name"].capitalize }}RouteParam custom structure for it's Route Params.
+        # A Hash will have been simpler but it has a cost in memory and in speed of access due the keys of hash.
+        struct {{ route["name"].capitalize.id }}Param
+          {% params = routeParam[route["path"]] %}
+          {% for item in params %}
+            {{ item.id }} : String
+          {% end %}
+        end
+      {% end %}
+    {% end %}
+
     ############################################################################
     # Generate the Matching Function for each path
     ############################################################################
@@ -55,7 +97,7 @@ macro cocaine_generate_endpoint(descriptions)
             {% end %}
             {% params += "}" %}
             {% if params == "{}"%}
-              {{ route["callback"].id }} context, RouteParams.new
+              {{ route["callback"].id }} context, {{ route["name"].capitalize.id }}Param.new
             {% else %}
               {{ route["callback"].id }} context, {{ params.id }}
             {% end %}
@@ -79,11 +121,24 @@ macro cocaine_generate_endpoint(descriptions)
 
     def self.match_endpoint(context : HTTP::Server::Context)
       request = context.request
-      case request.method
-        {% for method in %w(GET POST) %}
-          # TODO: Can Optimized by length in first
-          # TODO: Can compare by casting in UInt32
-          when {{ method }} # Method mean verb HTTP like GET, POST, ...` 
+      {% if verbs.size == 1 %}
+        if request.method == {{ verbs[0] }}
+          case
+          {% for route in descriptions %}
+            {% name = "#{ route["verb"].downcase.id }_#{ route["name"].downcase.id }?" %}
+            when self.{{ name.id }} context, {{ route["path"] }}, request.path
+              return
+          {% end %}
+          else
+            # TODO: code here for add an error callback
+          end
+        else
+          # TODO: code here for add an error callback
+        end
+      {% else %}
+        case request.method
+        {% for method, index in verbs %}
+          when {{ method }}
             case
             {% for route in descriptions %}
               {% if route["verb"] == method %}
@@ -92,9 +147,14 @@ macro cocaine_generate_endpoint(descriptions)
                   return
               {% end %}
             {% end %}
-          end 
+            else
+              # TODO: code here for add an error callback
+            end
         {% end %}
-      end
+        else
+          # TODO: code here for add an error callback
+        end
+      {% end %}
     end
   end
 end
@@ -104,48 +164,47 @@ end
 ################################################################################
 
 ################################################################################
-# Define your Controllers
-################################################################################
-
-# def controller_index(context : HTTP::Server::Context, params : Cocaine::Param)
-#   # context.response.content_type = "text/plain"
-#   # context.response.write Pointer.new "> user", 6, true
-# end
-
-# def controller_user(context : HTTP::Server::Context, params : Cocaine::Param)
-#   # puts params
-#   # context.response.content_type = "text/plain"
-#   # context.response.write Pointer.new "> user", 6, true
-# end
-
-################################################################################
 # Endpoint Generation
 ################################################################################
 
-# cocaine_generate_endpoint [
-#   {
-#     "name" => "index",
-#     "path" => "/",
-#     "verb" => "GET",
-#     "callback" => controller_index
-#   },
-#   {
-#     "name" => "user",
-#     "path" => "/user/:id",
-#     "verb" => "GET",
-#     "callback" => controller_user
-#   }
-# ]
+cocaine_generate_endpoint [
+  {
+    "name" => "index",
+    "path" => "/",
+    "verb" => "GET",
+    "callback" => controller_index
+  },
+  {
+    "name" => "user",
+    "path" => "/user/:id",
+    "verb" => "GET",
+    "callback" => controller_user
+  }
+]
+
+################################################################################
+# Define your Controllers
+################################################################################
+
+def controller_index(context : HTTP::Server::Context)
+  context.response.content_type = "text/plain"
+  context.response.write Pointer.new "> user", 6, true
+end
+
+def controller_user(context : HTTP::Server::Context, params : Cocaine::UserParam)
+  context.response.content_type = "text/plain"
+  context.response.write Pointer.new "> user", 6, true
+end
 
 ################################################################################
 # Server
 ################################################################################
 
-# server = HTTP::Server.new do |context|
-#   elapsed_time = Time.measure do
-#     Cocaine.match_endpoint context
-#   end
-#   puts elapsed_time.nanoseconds
-# end
-# puts "run"
-# server.listen "0.0.0.0", 5000
+server = HTTP::Server.new do |context|
+  elapsed_time = Time.measure do
+    Cocaine.match_endpoint context
+  end
+  puts elapsed_time.nanoseconds
+end
+puts "run"
+server.listen "0.0.0.0", 5000
