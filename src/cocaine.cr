@@ -80,7 +80,7 @@ macro cocaine_generate_endpoint(descriptions)
     def self.match_endpoint(context : HTTP::Server::Context)
       request = context.request
       case request.method
-        {% for method in %w(GET POST) %}
+        {% for method in %w(CONNECT OPTIONS DELETE PATCH TRACE HEAD POST GET PUT) %}
           # TODO: Can Optimized by length in first
           # TODO: Can compare by casting in UInt32
           when {{ method }} # Method mean verb HTTP like GET, POST, ...` 
