@@ -46,9 +46,15 @@ macro cocaine_generate_endpoint(descriptions)
         # A Hash will have been simpler but it has a cost in memory and in speed of access due the keys of hash.
         struct {{ route["name"].capitalize.id }}Param
           {% params = routeParam[route["path"]] %}
+          {% parameter = "" %}
           {% for item in params %}
-            {{ item.id }} : String
+            {% parameter += ", " unless parameter == "" %}
+            {% parameter += "@#{ item.id }" %}
+            getter {{ item.id }} : String
           {% end %}
+
+          def initialize({{ parameter.id }})
+          end
         end
       {% end %}
     {% end %}
@@ -85,6 +91,10 @@ macro cocaine_generate_endpoint(descriptions)
             # Build Param
             {% firstCall = true %}
             {% params = "{" %}
+
+            
+
+
             {% for index in 0...split.size %}
               {% if split[index][0...1] == ":" %}
                 {% if firstCall %}
@@ -97,7 +107,7 @@ macro cocaine_generate_endpoint(descriptions)
             {% end %}
             {% params += "}" %}
             {% if params == "{}"%}
-              {{ route["callback"].id }} context, {{ route["name"].capitalize.id }}Param.new
+              {{ route["callback"].id }} context
             {% else %}
               {{ route["callback"].id }} context, {{ params.id }}
             {% end %}
@@ -158,53 +168,3 @@ macro cocaine_generate_endpoint(descriptions)
     end
   end
 end
-
-################################################################################
-# Basic Test
-################################################################################
-
-################################################################################
-# Endpoint Generation
-################################################################################
-
-cocaine_generate_endpoint [
-  {
-    "name" => "index",
-    "path" => "/",
-    "verb" => "GET",
-    "callback" => controller_index
-  },
-  {
-    "name" => "user",
-    "path" => "/user/:id",
-    "verb" => "GET",
-    "callback" => controller_user
-  }
-]
-
-################################################################################
-# Define your Controllers
-################################################################################
-
-def controller_index(context : HTTP::Server::Context)
-  context.response.content_type = "text/plain"
-  context.response.write Pointer.new "> user", 6, true
-end
-
-def controller_user(context : HTTP::Server::Context, params : Cocaine::UserParam)
-  context.response.content_type = "text/plain"
-  context.response.write Pointer.new "> user", 6, true
-end
-
-################################################################################
-# Server
-################################################################################
-
-server = HTTP::Server.new do |context|
-  elapsed_time = Time.measure do
-    Cocaine.match_endpoint context
-  end
-  puts elapsed_time.nanoseconds
-end
-puts "run"
-server.listen "0.0.0.0", 5000
