@@ -1,4 +1,6 @@
 require "http/server"
+# Locally Import
+# require "./param"
 
 module Cocaine
   VERSION = "0.1.0"
@@ -6,165 +8,169 @@ end
 
 macro cocaine_generate_endpoint(descriptions)
   module Cocaine
-    # TODO: Add a check on compile time for descriptions to be sure is valid
+    # TODO: Add a check for descriptions
 
-    ############################################################################
-    # Collect all verbs
-    ############################################################################
-
-    {% verbs = [] of String %}
-    {% for route in descriptions %}
-      {% verbs << route["verb"] %}
+    # INFO: Collect every methods possible
+    #-----
+    {% methods = [] of String %}
+    {% for description in descriptions %}
+      {% for key in description["methods"] %}
+        {% methods << key %}
+      {% end %}
     {% end %}
-    {% verbs = verbs.uniq %}
+    {% methods = methods.uniq %}
+    #-----
 
-    ############################################################################
-    # Generate a variable routeParam
-    ############################################################################
+    # INFO: associates each path with a method
+    #-----
+    {% methodPaths = {} of String => Array(String) %}
+    {% for method in methods %}
+      {% methodPaths[method] = [] of String %}
+    {% end %}
+    {% for description in descriptions %}
+      {% for method in description["methods"] %}
+        {% methodPaths[method] << description["path"] %}
+      {% end %}
+    {% end %}
+    #-----
 
-    {% routeParam = {} of String => Array(String) %}
-    {% for route in descriptions %}
-      {% array = [] of String %}
-      {% split = route["path"].split "/" %}
-      {% for item, index in split %}
-        {% if item[0...1] == ":" %}
-          {% array << item[1...item.size] %}
+    # INFO: Pre-analyze the path to know the indexes where the parameters are located
+    #-----
+    {% pathParamsIndexs = {} of String => Hash(String, Array(UInt32)) %}
+    {% for method in methods %}
+      {% pathParamsIndexs[method] = {} of String => Array(UInt32) %}
+    {% end %}
+    {% for description in descriptions %}
+      {% for method in description["methods"] %}
+        {% path = description["path"] %}
+        {% pathParamsIndexs[method][path] = [] of UInt32 %}
+        {% onColon = false %}
+        {% for index in (0..path.size) %}
+          {% if path[index..index] == ":" && onColon == false %}
+            {% pathParamsIndexs[method][path] << index %}
+            {% onColon = true %}
+          {% elsif path[index..index] == "/" && onColon == true %}
+            {% pathParamsIndexs[method][path] << index %}
+            {% onColon = false %}
+          {% elsif index + 1 == path.size && onColon == true %}
+            {% pathParamsIndexs[method][path] << index %}
+          {% end %}
         {% end %}
       {% end %}
-      {% routeParam[route["path"]] = array %}
     {% end %}
+    #-----
 
-    ############################################################################
-    # Generate Custum Struct for Route Parameter
-    ############################################################################
-
-    # INFO: if no param no build the struct
-
-    {% for route in descriptions %}
-      {% if routeParam[route["path"]].size > 0 %}
-        # This is {{ route["name"].capitalize }}RouteParam custom structure for it's Route Params.
-        # A Hash will have been simpler but it has a cost in memory and in speed of access due the keys of hash.
-        struct {{ route["name"].capitalize.id }}Param
-          {% params = routeParam[route["path"]] %}
-          {% parameter = "" %}
-          {% for item in params %}
-            {% parameter += ", " unless parameter == "" %}
-            {% parameter += "@#{ item.id }" %}
-            getter {{ item.id }} : String
-          {% end %}
-
-          def initialize({{ parameter.id }})
-          end
-        end
+    # INFO: Global StaticArray for Params Indexs
+    #-----
+    # Method => Paths => Indez
+    {% paramsIndexs = [] of Array(Array(UInt32)) %}
+    {% indexA = 0 %}
+    {% for method in pathParamsIndexs %}
+      {% indexB = 0 %}
+      {% for path in pathParamsIndexs[method] %}
+        {% for indexs in pathParamsIndexs[method][path] %}
+          {% paramsIndexs[indexA] << indexs %}
+        {% end %}
+        {% indexB += 1 %}
       {% end %}
+      {% indexA += 1 %}
     {% end %}
 
-    ############################################################################
-    # Generate the Matching Function for each path
-    ############################################################################
+    {% puts paramsIndexs %}
 
-    {% for route in descriptions %}
-      {% name = "#{ route["verb"].downcase.id }_#{ route["name"].downcase.id }?" %}
-      private def self.{{ name.id }}(context : HTTP::Server::Context, reference, path) : Bool
-        {% split = route["path"].split '/' %}
-        split = path.split '/'
-        # Check if have the same quantity of '/'
-        if split.size == {{ split.size }}
-          ######################################################################
-          # Block
-          ######################################################################
-          {% firstCall = true %}
-          {% condition = "" %}
-          {% for index in 0...split.size %}
-            {% unless split[index][0...1] == ":" %}
-              {% if firstCall %}
-                {% condition += "if split[#{ index.id }] == #{ split[index] }" %}
-                {% firstCall = false %}
-              {% else %}
-                {% condition += " && split[#{ index.id }] == #{ split[index] }" %}
-              {% end %}
-            {% end %}
-          {% end %}
-          # Blit the complex condition form some few previous lines
-          {{ condition.id }}
-            # TODO: Add or not context
-            # Build Param
-            {% firstCall = true %}
-            {% params = "{" %}
-
-            
-
-
-            {% for index in 0...split.size %}
-              {% if split[index][0...1] == ":" %}
-                {% if firstCall %}
-                  {% params += " #{ split[index] } => split[#{ index.id }] " %}
-                  {% firstCall = false %}
-                {% else %}
-                  {% params += ", #{ split[index] } => split[#{ index.id }]" %}
-                {% end %}
-              {% end %}
-            {% end %}
-            {% params += "}" %}
-            {% if params == "{}"%}
-              {{ route["callback"].id }} context
-            {% else %}
-              {{ route["callback"].id }} context, {{ params.id }}
-            {% end %}
-            return true
-          end
-        end
-        false
-      end
-    {% end %}
+    PARAMS_INDEXS = StaticArray[[[0]]]
+    #-----
 
     ############################################################################
     # Main Function
     ############################################################################
 
-    # TODO: Be First on this Benchmark Here -> https://github.com/the-benchmarker/web-frameworks
-    # 7 Bytes -> CONNECT, OPTIONS
-    # 6 Bytes -> DELETE
-    # 5 Bytes -> PATCH, TRACE
-    # 4 Bytes -> HEAD, POST
-    # 3 Bytes -> GET, PUT
-
     def self.match_endpoint(context : HTTP::Server::Context)
       request = context.request
-      {% if verbs.size == 1 %}
-        if request.method == {{ verbs[0] }}
-          case
-          {% for route in descriptions %}
-            {% name = "#{ route["verb"].downcase.id }_#{ route["name"].downcase.id }?" %}
-            when self.{{ name.id }} context, {{ route["path"] }}, request.path
-              return
-          {% end %}
-          else
-            # TODO: code here for add an error callback
-          end
-        else
-          # TODO: code here for add an error callback
+      # INFO: Method Switcher
+      {% if methods.size == 1 %}
+        # INFO: For only one Method
+        if request.method == {{ methods[0] }}
+          # INFO: Path Matching
         end
       {% else %}
+        # INFO: For multi Methods
         case request.method
-        {% for method, index in verbs %}
+        {% for method, methodIndex in methods %}
           when {{ method }}
-            case
-            {% for route in descriptions %}
-              {% if route["verb"] == method %}
-                {% name = "#{ route["verb"].downcase.id }_#{ route["name"].downcase.id }?" %}
-                when self.{{ name.id }} context, {{ route["path"] }}, request.path
-                  return
-              {% end %}
+            # INFO: Path Matching
+            path = request.path.to_unsafe
+            
+            {% for path, index in methodPaths[method] %}
+
+              # puts PARAMS_INDEXS[{{ methodIndex }}]
+
+
             {% end %}
-            else
-              # TODO: code here for add an error callback
-            end
-        {% end %}
-        else
-          # TODO: code here for add an error callback
+          {% end %}
         end
       {% end %}
     end
   end
 end
+
+################################################################################
+#
+################################################################################
+
+def fun_get
+  puts "fun_get"
+end
+
+def fun_post
+  puts "fun_post"
+end
+
+def fun_delete
+  puts "fun_delete"
+end
+
+def fun_patch
+  puts "fun_patch"
+end
+
+def fun_put
+  puts "fun_put"
+end
+
+cocaine_generate_endpoint [
+  {
+    "cors" => true,
+    "methods" => {
+      "GET" => fun_get,
+      "POST" => fun_post,
+      "DELETE" => fun_delete,
+      "PATCH" => fun_patch,
+      "PUT" => fun_put
+    },
+    "name" => "Test", # Name for the struct exemple PosTest
+    "path" => "/user/:id" # /user & /user/ it's exactly the same
+  },
+  {
+    "cors" => true,
+    "methods" => {
+      "GET" => fun_get,
+      "POST" => fun_post,
+      "DELETE" => fun_delete,
+      "PATCH" => fun_patch,
+      "PUT" => fun_put
+    },
+    "name" => "Test", # Name for the struct exemple PosTest
+    "path" => "/user/:id/:oo" # /user & /user/ it's exactly the same
+  },
+]
+
+puts "------>"
+server = HTTP::Server.new do |context|
+  delta = Time.measure do
+    Cocaine.match_endpoint context
+  end
+  time = delta.nanoseconds
+  puts "> #{ time } ns >> #{ 1_000_000_000 / time }"
+end
+server.listen "0.0.0.0", 5000
